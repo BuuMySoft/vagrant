@@ -4,7 +4,7 @@ Vagrant box creation code.
 # How Tos
 ## Create the box file?
 ```
-vagrant package --base <hostname>
+vagrant package --base <VM name>
 ```
 
 ## Make the box usable locally?
