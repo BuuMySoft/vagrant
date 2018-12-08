@@ -1,0 +1,66 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.define "portainer" do |portainer|
+
+    portainer.vm.box = "debian/stretch64"
+
+    hostname = "portainer.vagrant.bms"
+
+    portainer.vm.host_name = hostname
+
+    portainer.vm.provider "virtualbox" do |v|
+      v.name = hostname
+    end
+
+    portainer.vm.provision "update_dns", type: "shell", inline: <<-SHELL
+      sudo echo "nameserver    1.1.1.1"  > /etc/resolv.conf
+    SHELL
+    portainer.vm.provision "ssh_keys", type: "shell", inline: <<-SHELL
+      wget https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub -O .ssh/authorized_keys
+      chmod 700 .ssh
+      chmod 600 .ssh/authorized_keys
+      chown -R vagrant:vagrant .ssh
+    SHELL
+    portainer.vm.provision "docker_prerequisites", type: "shell", inline: <<-SHELL
+      sudo apt-get -qqy install apt-transport-https
+      sudo apt-get -qqy install ca-certificates
+      sudo apt-get -qqy install curl
+      sudo apt-get -qqy install gnupg2
+      sudo apt-get -qqy install software-properties-common
+    SHELL
+    portainer.vm.provision "docker", type: "shell", inline: <<-SHELL
+      sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /tmp/docker.gpg
+      sudo apt-key add /tmp/docker.gpg
+      sudo apt-key fingerprint 0EBFCD88
+      sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+      sudo apt-get update
+      sudo apt-get -qqy install docker-ce
+    SHELL
+    portainer.vm.provision "docker_compose", type: "shell", inline: <<-SHELL
+      sudo curl -L "https://github.com/docker/compose/releases/download/1.22.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+      sudo chmod +x /usr/local/bin/docker-compose
+    SHELL
+    # Allows to run the docker command without using sudo
+    portainer.vm.provision "no_sudo", type: "shell", inline: <<-SHELL
+      sudo adduser vagrant docker
+    SHELL
+    portainer.vm.provision "pull_portainer", type: "shell", inline: <<-SHELL
+      sudo docker pull portainer/portainer
+    SHELL
+    portainer.vm.provision "portainer", type: "shell", inline: <<-SHELL
+      sudo docker volume create portainer_data
+      sudo docker run -d --name="portainer" --restart on-failure -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer
+    SHELL
+
+    portainer.vm.post_up_message = <<-MSG
+The portainer VM is available.
+Please connect using:
+  http://<ip>:9000
+
+For more details please visit:
+  https://app.vagrantup.com/buumy-soft/boxes/portainer
+    MSG
+  end
+end
