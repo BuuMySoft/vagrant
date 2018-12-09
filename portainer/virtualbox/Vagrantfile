@@ -4,7 +4,7 @@
 Vagrant.configure("2") do |config|
   config.vm.define "portainer" do |portainer|
 
-    portainer.vm.box = "debian/stretch64"
+    portainer.vm.box = "buumy-soft/stretch64"
 
     hostname = "portainer.vagrant.bms"
 
@@ -14,9 +14,6 @@ Vagrant.configure("2") do |config|
       v.name = hostname
     end
 
-    portainer.vm.provision "update_dns", type: "shell", inline: <<-SHELL
-      sudo echo "nameserver    1.1.1.1"  > /etc/resolv.conf
-    SHELL
     portainer.vm.provision "ssh_keys", type: "shell", inline: <<-SHELL
       wget https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub -O .ssh/authorized_keys
       chmod 700 .ssh
